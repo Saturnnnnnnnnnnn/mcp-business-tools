@@ -30,7 +30,7 @@
 ## Установка
 
 ```bash
-git clone
+git clone https://github.com/Saturnnnnnnnnnnn/mcp-business-tools.git
 cd mcp-ready-project-full
 python3 -m venv venv
 source venv/bin/activate
