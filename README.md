@@ -1,21 +1,21 @@
 ````markdown
 # MCP Business Tools (MVP)
 
-Версия: 0.1.0
+Версия: 0.1.0дав
 
-Простой бэкенд для демонстрации автоматизации тестирования и утилит команды QA.
+Бэкенд для демонстрации автоматизации тестирования и утилит команды QA с интеграцией AI (LLM).
 
 ---
 
 ## Что делает проект
 
-- Генерирует тест-кейсы (ручные и API) автоматически.
+- Генерирует тест-кейсы (ручные и API) автоматически через LLM.
 - Проверяет тесты на соответствие стандартам (Allure, AAA-паттерн).
-- Создает события в календаре (демо).
-- Отправляет письма (демо, требует настроенный SMTP).
+- Создает события в календаре (демо или через Google Calendar).
+- Отправляет письма (демо, требует SMTP).
 - Возвращает тестовые данные, например курсы валют (демо).
 
-Всё через веб-API, можно тестировать через Swagger или HTTP-запросы.
+Всё доступно через веб-API. Можно тестировать через Swagger UI или HTTP-запросы.
 
 ---
 
@@ -41,20 +41,31 @@ pip install -r requirements.txt
 
 ## Настройки внешних сервисов
 
-Создайте файл `.env` в корне проекта для подключения почты и календаря:
+Файл `.env` уже включён в корень проекта как `.env.example`. Пример содержимого:
 
-```
+```dotenv
+# Сервер
+HOST=0.0.0.0
+PORT=8000
+REQUEST_TIMEOUT=15
+
+# SMTP (если нужно)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=user@example.com
 SMTP_PASSWORD=yourpassword
+FROM_EMAIL=user@example.com
 
-GOOGLE_CALENDAR_API_KEY=your_api_key
+# LLM для генерации тестов
+EVOLUTION_API_TOKEN=ваш_ключ
+EVOLUTION_API_URL=https://foundation-models.api.cloud.ru/v1
+
+# Google Calendar (если нужно)
+GOOGLE_CALENDAR_API_KEY=ваш_ключ
+GOOGLE_CALENDAR_CALENDAR_ID=primary
 ```
 
-> Без этих настроек `send_email` и интеграция с Google Calendar будут работать только с демо-данными.
-
-Можно оставить `.env` пустым для работы с демо-данными.
+> Без LLM-токена генерация тестов через AI работать не будет. SMTP и календарь можно оставить пустыми для демонстрации.
 
 ---
 
@@ -64,7 +75,7 @@ GOOGLE_CALENDAR_API_KEY=your_api_key
 python3 -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-* API доступно: `http://127.0.0.1:8000`
+* API: `http://127.0.0.1:8000`
 * Swagger UI: `http://127.0.0.1:8000/docs`
 * Health check: `http://127.0.0.1:8000/health`
 
@@ -72,13 +83,31 @@ python3 -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## Примеры запросов
 
-### 1. Проверка состояния сервера (Health Check)
+### 1. Генерация ручных тестов через AI
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/generate/manual-tests \
+-H "Content-Type: application/json" \
+-d '{"product_description":"Demo product","owner":"QA Team","feature":"Login","count":3}'
 ```
 
-### 2. Получение курса валют (демо)
+### 2. Генерация API-тестов по OpenAPI
+
+```bash
+curl -X POST http://127.0.0.1:8000/generate/api-tests \
+-H "Content-Type: application/json" \
+-d '{"openapi_url":"https://demo.openapi.url/spec.json"}'
+```
+
+### 3. Проверка кода на соответствие стандартам
+
+```bash
+curl -X POST http://127.0.0.1:8000/validate/code \
+-H "Content-Type: application/json" \
+-d '{"code":"@allure.manual\nwith allure.step(\"Arrange\"):\n    pass"}'
+```
+
+### 4. Получение курса валют (демо)
 
 ```bash
 curl -X POST http://127.0.0.1:8000/tool/get_exchange_rate \
@@ -86,7 +115,7 @@ curl -X POST http://127.0.0.1:8000/tool/get_exchange_rate \
 -d '{"from_currency":"USD","to_currency":"RUB"}'
 ```
 
-### 3. Отправка письма (требуется настроенный SMTP)
+### 5. Отправка письма (требуется SMTP)
 
 ```bash
 curl -X POST http://127.0.0.1:8000/tool/send_email \
@@ -94,7 +123,7 @@ curl -X POST http://127.0.0.1:8000/tool/send_email \
 -d '{"to":"you@example.com","subject":"Test Email","body":"Hello from MCP"}'
 ```
 
-### 4. Создание события в календаре (демо)
+### 6. Создание события в календаре (демо или Google Calendar)
 
 ```bash
 curl -X POST http://127.0.0.1:8000/tool/create_calendar_event \
@@ -106,7 +135,8 @@ curl -X POST http://127.0.0.1:8000/tool/create_calendar_event \
 
 ## Особенности
 
-* Реальные внешние сервисы (почта, календарь, курсы валют) не подключены — демонстрационные данные.
+* Генерация тестов и проверка кода работают через AI (LLM) при наличии токена.
+* Реальные внешние сервисы (почта, календарь, курсы валют) работают только при настройке.
 * Можно подключать SMTP, Google Calendar, API валют при необходимости.
 * Всё готово к демонстрации на хакатоне.
 
@@ -115,12 +145,12 @@ curl -X POST http://127.0.0.1:8000/tool/create_calendar_event \
 ## Структура проекта
 
 ```
-app/               # код сервера
+app/               # сервер, LLM-клиент и utils
 tests/             # тесты
-examples/          # примеры использования команд curl
-requirements.txt   # зависимости
-start.sh           # скрипт запуска
-.env               # настройки внешних сервисов (SMTP, календарь)
+examples/          # примеры запросов и output
+requirements.txt
+start.sh
+.env               # настройки внешних сервисов и LLM
 ```
 
 ---
@@ -129,4 +159,4 @@ start.sh           # скрипт запуска
 Проект для хакатона, версия MVP.
 
 ```
-
+```
