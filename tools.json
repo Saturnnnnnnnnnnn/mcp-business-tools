@@ -1,0 +1,22 @@
+
+{
+  "name": "mcp-finance-email-calendar",
+  "version": "0.1.0",
+  "tools": [
+    {
+      "name": "get_exchange_rate",
+      "description": "Возвращает курс валюты",
+      "endpoint": "/tool/get_exchange_rate"
+    },
+    {
+      "name": "send_email",
+      "description": "Отправляет письмо через SMTP",
+      "endpoint": "/tool/send_email"
+    },
+    {
+      "name": "create_calendar_event",
+      "description": "Создаёт календарное событие (локальный stub)",
+      "endpoint": "/tool/create_calendar_event"
+    }
+  ]
+}
